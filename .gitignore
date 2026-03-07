@@ -1,0 +1,44 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+/venv
+/env
+.env
+
+# For Conda environments
+.conda/
+.micromamba/
+.pixi/
+# Pip-tools
+*.hash
+.pip-modules/
+
+# Editors and IDEs
+.idea/  # For PyCharm/IntelliJ
+.vscode/ # For VS Code
+*.swp   # For Vim
+
+# OS-specific files
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Miscellaneous
+*.log
+*.seed
+*.py,cover
+.pytest_cache/
+.ruff_cache/
+*.csv
+*.sql
