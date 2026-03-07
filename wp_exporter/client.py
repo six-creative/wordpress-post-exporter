@@ -60,13 +60,13 @@ class WordPressClient:
             items = response.json()
             total_pages = int(response.headers.get("X-WP-TotalPages", "1"))
             if not items:
-                self._report(f"[{endpoint}] sem registros.")
+                self._report(f"[{endpoint}] no records found.")
                 break
 
             all_items.extend(items)
             self._report(
-                f"[{endpoint}] página {page}/{total_pages} | "
-                f"acumulado: {len(all_items)}"
+                f"[{endpoint}] page {page}/{total_pages} | "
+                f"accumulated: {len(all_items)}"
             )
             if page >= total_pages:
                 break
@@ -80,7 +80,7 @@ class WordPressClient:
             "context": "edit",
             "_embed": "author,wp:term",
         }
-        self._report("Buscando posts publicados (context=edit)...")
+        self._report("Fetching published posts (context=edit)...")
         try:
             posts = self._get_paginated(endpoint="posts", params=params)
             self.posts_context = "edit"
@@ -89,7 +89,7 @@ class WordPressClient:
             if not self._is_auth_error(exc):
                 raise
             self._report(
-                "Sem permissão para context=edit. Tentando modo público (context=view)"
+                "No permission for context=edit. Falling back to public mode (context=view)."
             )
 
         fallback_params = {
@@ -102,7 +102,7 @@ class WordPressClient:
         return posts
 
     def get_categories_map(self) -> dict[int, str]:
-        self._report("Buscando categorias...")
+        self._report("Fetching categories...")
         try:
             categories = self._get_paginated(
                 "categories", params={"context": self.posts_context}
@@ -110,31 +110,31 @@ class WordPressClient:
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
                 self._report(
-                    "Categorias indisponíveis neste contexto; seguindo sem mapa."
+                    "Categories unavailable in this context; continuing without category map."
                 )
                 return {}
             raise
         return {item["id"]: item.get("name", "") for item in categories}
 
     def get_tags_map(self) -> dict[int, str]:
-        self._report("Buscando tags...")
+        self._report("Fetching tags...")
         try:
             tags = self._get_paginated("tags", params={"context": self.posts_context})
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
-                self._report("Tags indisponíveis neste contexto; seguindo sem mapa.")
+                self._report("Tags unavailable in this context; continuing without tag map.")
                 return {}
             raise
         return {item["id"]: item.get("name", "") for item in tags}
 
     def get_users_map(self) -> dict[int, str]:
-        self._report("Buscando autores...")
+        self._report("Fetching authors...")
         try:
             users = self._get_paginated("users", params={"context": self.posts_context})
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
                 self._report(
-                    "Endpoint de usuários indisponível; usando autor do _embedded."
+                    "Users endpoint unavailable; using author data from _embedded."
                 )
                 return {}
             raise

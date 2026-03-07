@@ -17,4 +17,4 @@ class ExportConfig:
 
     def validate(self) -> None:
         if self.output_format not in {"csv", "sql"}:
-            raise ValueError("output_format deve ser 'csv' ou 'sql'.")
+            raise ValueError("output_format must be 'csv' or 'sql'.")

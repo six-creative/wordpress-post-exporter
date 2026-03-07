@@ -9,46 +9,45 @@ from wp_exporter import ExportConfig, export_posts
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Exporta posts publicados do WordPress "
-        "para CSV ou SQL dump (SQLite)."
+        description="Export published WordPress posts to CSV or MySQL SQL dump."
     )
     parser.add_argument(
         "--base-url",
         required=True,
-        help="URL base do site WordPress (ex: https://site.com)",
+        help="WordPress site base URL (e.g. https://site.com)",
     )
     parser.add_argument(
         "--format",
         dest="output_format",
         choices=["csv", "sql"],
         default="csv",
-        help="Formato de saída.",
+        help="Output format.",
     )
     parser.add_argument(
         "--output",
         required=True,
-        help="Caminho do arquivo de saída (ex: export.csv ou export.sql)",
+        help="Output file path (e.g. export.csv or export.sql)",
     )
 
-    auth = parser.add_argument_group("Autenticação")
-    auth.add_argument("--token", help="Token Bearer para API do WordPress")
+    auth = parser.add_argument_group("Authentication")
+    auth.add_argument("--token", help="Bearer token for the WordPress API")
     auth.add_argument(
-        "--username", help="Usuário WordPress (para Application Password)"
+        "--username", help="WordPress username (for Application Password)"
     )
     auth.add_argument(
-        "--application-password", help="Application Password do WordPress"
+        "--application-password", help="WordPress Application Password"
     )
 
     parser.add_argument(
         "--timeout",
         type=int,
         default=30,
-        help="Timeout em segundos para cada chamada HTTP.",
+        help="Timeout in seconds for each HTTP request.",
     )
     parser.add_argument(
         "--quiet",
         action="store_true",
-        help="Desativa logs de progresso no terminal.",
+        help="Disable progress logs in the terminal.",
     )
     return parser
 
@@ -74,10 +73,10 @@ def main() -> int:
     try:
         total = export_posts(config, progress_reporter=report_progress)
     except Exception as exc:  # noqa: BLE001
-        print(f"Erro ao exportar posts: {exc}", file=sys.stderr)
+        print(f"Error exporting posts: {exc}", file=sys.stderr)
         return 1
 
-    print(f"Exportação concluída. {total} posts salvos em: {config.output_path}")
+    print(f"Export completed. {total} posts written to: {config.output_path}")
     return 0
 
 

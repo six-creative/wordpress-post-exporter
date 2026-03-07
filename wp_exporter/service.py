@@ -18,16 +18,16 @@ def export_posts(
     progress_reporter: Callable[[str], None] | None = None,
 ) -> int:
     config.validate()
-    _report(progress_reporter, "Iniciando exportação...")
+    _report(progress_reporter, "Starting export...")
 
     client = WordPressClient(config, progress_reporter=progress_reporter)
     posts = client.get_published_posts()
     categories_map = client.get_categories_map()
     tags_map = client.get_tags_map()
     users_map = client.get_users_map()
-    _report(progress_reporter, f"Total de posts encontrados: {len(posts)}")
+    _report(progress_reporter, f"Total posts found: {len(posts)}")
 
-    _report(progress_reporter, "Normalizando dados...")
+    _report(progress_reporter, "Normalizing data...")
     normalized_rows = []
     total_posts = len(posts)
     for idx, post in enumerate(posts, start=1):
@@ -40,15 +40,15 @@ def export_posts(
             )
         )
         if idx % 200 == 0 or idx == total_posts:
-            _report(progress_reporter, f"Normalizados: {idx}/{total_posts}")
+            _report(progress_reporter, f"Normalized: {idx}/{total_posts}")
 
     if config.output_format == "csv":
-        _report(progress_reporter, f"Escrevendo arquivo CSV em {config.output_path}...")
+        _report(progress_reporter, f"Writing CSV file to {config.output_path}...")
         export_to_csv(normalized_rows, config.output_path)
     elif config.output_format == "sql":
-        _report(progress_reporter, f"Escrevendo arquivo SQL em {config.output_path}...")
+        _report(progress_reporter, f"Writing SQL file to {config.output_path}...")
         export_to_sql_dump(normalized_rows, config.output_path)
     else:
-        raise ValueError(f"Formato não suportado: {config.output_format}")
+        raise ValueError(f"Unsupported format: {config.output_format}")
 
     return len(normalized_rows)

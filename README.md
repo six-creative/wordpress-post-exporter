@@ -1,120 +1,204 @@
 # WordPress Post Exporter
 
-Ferramenta em Python para exportar **todos os posts publicados** de um site WordPress via API oficial (`wp-json/wp/v2`) com metadados completos.
+Python tool to export **all published posts** from a WordPress site using the official REST API (`wp-json/wp/v2`), including post content and taxonomy/author metadata.
 
-## O que esta ferramenta exporta
+## Features
 
-Para cada post publicado, a exportação inclui:
+- Exports all published posts with pagination (`per_page=100`).
+- Supports `csv` and `sql` output.
+- SQL output is MySQL 8 compatible.
+- Includes progress logs in the terminal (with optional `--quiet`).
+- Tries `context=edit` first, then automatically falls back to `context=view` if unauthorized.
+- Preserves the full API payload in `raw_post_json` for custom fields and future migrations.
 
-- ID, status, tipo, slug, link e datas (`date`, `date_gmt`, `modified`, `modified_gmt`)
-- Título, resumo e conteúdo nas versões:
-  - `rendered`
-  - `raw` (quando disponível via `context=edit`)
-- Autor:
+## Exported Data
+
+Each exported post includes:
+
+- Core fields: `id`, `status`, `type`, `slug`, `link`, `date`, `date_gmt`, `modified`, `modified_gmt`
+- Title, excerpt, and content in both flavors when available:
+  - `*_rendered`
+  - `*_raw` (typically available with `context=edit` + permissions)
+- Author:
   - `author_id`
   - `author_name`
-- Taxonomias:
-  - categorias (IDs e nomes)
-  - tags (IDs e nomes)
-- Campos adicionais:
+- Taxonomies:
+  - categories IDs + names
+  - tags IDs + names
+- Extra fields:
   - `featured_media`, `comment_status`, `ping_status`, `template`, `format`, `meta`
-- `raw_post_json` com o payload completo retornado pela API (útil para conteúdo grande e campos customizados)
+- Full raw JSON payload:
+  - `raw_post_json`
 
-## Requisitos
+## Requirements
 
 - Python 3.10+
-- Acesso à API REST do WordPress com credenciais válidas
 
-## Instalação
+## Installation
 
-1. (Opcional, recomendado) criar e ativar um ambiente virtual:
+1. (Optional, recommended) create and activate a virtual environment:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-2. Instalar dependências:
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Formatos de saída
+## Authentication
 
-A ferramenta suporta:
-
-- `csv`
-- `sql` (dump compatível com MySQL 8 contendo `DROP TABLE`, `CREATE TABLE` e `INSERT` para `posts`)
-
-## Autenticação suportada
-
-Use **uma** das opções abaixo:
+Use one of the following:
 
 1. Bearer token
 - `--token`
 
-2. Application Password (WordPress)
+2. WordPress Application Password (Basic Auth)
 - `--username`
 - `--application-password`
 
-## Uso
+Note: public exports also work without credentials in many sites, depending on API exposure rules.
 
-### Com Bearer token
+## Usage
+
+### Public/API-view mode (no auth)
 
 ```bash
 python3 main.py \
-  --base-url https://seusite.com \
-  --token SEU_TOKEN \
+  --base-url https://example.com \
   --format csv \
   --output posts.csv
 ```
 
-### Com usuário + application password
+### Bearer token
 
 ```bash
 python3 main.py \
-  --base-url https://seusite.com \
+  --base-url https://example.com \
+  --token YOUR_TOKEN \
+  --format csv \
+  --output posts.csv
+```
+
+### Username + Application Password
+
+```bash
+python3 main.py \
+  --base-url https://example.com \
   --username admin \
   --application-password "xxxx xxxx xxxx xxxx" \
   --format sql \
   --output posts.sql
 ```
 
-## Parâmetros da CLI
+## CLI Arguments
 
-- `--base-url` (obrigatório): URL base do WordPress. Ex.: `https://seusite.com`
-- `--format`: `csv` ou `sql` (padrão: `csv`)
-- `--output` (obrigatório): caminho do arquivo de saída
-- `--token`: token Bearer
-- `--username`: usuário WordPress
-- `--application-password`: senha de aplicação do WordPress
-- `--timeout`: timeout por chamada HTTP em segundos (padrão: `30`)
-- `--quiet`: desativa logs de progresso no terminal
+- `--base-url` (required): WordPress site base URL. Example: `https://example.com`
+- `--format`: `csv` or `sql` (default: `csv`)
+- `--output` (required): output file path
+- `--token`: bearer token
+- `--username`: WordPress username
+- `--application-password`: WordPress Application Password
+- `--timeout`: timeout in seconds per HTTP request (default: `30`)
+- `--quiet`: disable progress logs
 
-## Exemplo de execução
+## Progress Output
 
-Saída esperada ao final:
-
-```text
-Exportação concluída. N posts salvos em: caminho/do/arquivo
-```
-
-Durante a execução, o programa mostra o andamento no terminal, por exemplo:
+By default, the exporter prints progress messages such as:
 
 ```text
-[INFO] Iniciando exportação...
-[INFO] Buscando posts publicados (context=edit)...
-[INFO] Sem permissão para context=edit. Tentando modo público (context=view)...
-[INFO] [posts] página 1/12 | acumulado: 100
-[INFO] [posts] página 2/12 | acumulado: 200
-[INFO] ...
-[INFO] Normalizados: 1200/1200
-[INFO] Escrevendo arquivo CSV em posts.csv...
-Exportação concluída. 1200 posts salvos em: posts.csv
+[INFO] Starting export...
+[INFO] Fetching published posts (context=edit)...
+[INFO] No permission for context=edit. Falling back to public mode (context=view).
+[INFO] [posts] page 1/12 | accumulated: 100
+[INFO] [posts] page 2/12 | accumulated: 200
+[INFO] Total posts found: 1200
+[INFO] Normalized: 1200/1200
+[INFO] Writing CSV file to posts.csv...
+Export completed. 1200 posts written to: posts.csv
 ```
 
-## Estrutura do projeto
+## CSV Format Specification
+
+The CSV header columns are generated in this order:
+
+1. `id`
+2. `date`
+3. `date_gmt`
+4. `modified`
+5. `modified_gmt`
+6. `slug`
+7. `status`
+8. `type`
+9. `link`
+10. `title_rendered`
+11. `title_raw`
+12. `excerpt_rendered`
+13. `excerpt_raw`
+14. `content_rendered`
+15. `content_raw`
+16. `author_id`
+17. `author_name`
+18. `categories_ids` (JSON array string)
+19. `categories_names` (JSON array string)
+20. `tags_ids` (JSON array string)
+21. `tags_names` (JSON array string)
+22. `featured_media`
+23. `comment_status`
+24. `ping_status`
+25. `template`
+26. `format`
+27. `meta` (JSON object string)
+28. `raw_post_json` (full JSON object string)
+
+Notes:
+- CSV encoding is UTF-8.
+- Content fields may contain long HTML/text.
+- JSON-like columns are serialized as JSON strings.
+
+## SQL Format Specification (MySQL 8)
+
+The `.sql` file includes:
+
+1. Session setup:
+- `SET NAMES utf8mb4;`
+- `SET time_zone = '+00:00';`
+
+2. Schema reset and creation:
+- `DROP TABLE IF EXISTS posts;`
+- `CREATE TABLE posts (...) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
+
+3. Batched inserts:
+- `INSERT INTO posts (...) VALUES (...), (...), ...;`
+
+### Column Types
+
+- `id`: `BIGINT NOT NULL` (primary key)
+- `author_id`, `featured_media`: `BIGINT NULL`
+- `date`, `date_gmt`, `modified`, `modified_gmt`: `DATETIME NULL`
+- all remaining columns: `LONGTEXT NULL`
+
+### SQL Compatibility Details
+
+- String escaping is MySQL-safe for:
+  - backslash (`\\`)
+  - single quote (`\'`)
+  - null byte (`\0`)
+  - line break (`\n`)
+  - carriage return (`\r`)
+  - `\x1a` (`\Z`)
+- Inserts are chunked (200 rows per statement) to reduce very large single statements.
+
+## Importing SQL into MySQL 8
+
+```bash
+mysql -u your_user -p your_database < posts.sql
+```
+
+## Project Structure
 
 ```text
 .
@@ -129,23 +213,17 @@ Exportação concluída. 1200 posts salvos em: posts.csv
     └── transformers.py
 ```
 
-## Observações
-
-- A exportação usa paginação (`per_page=100`) e percorre todas as páginas disponíveis.
-- A API é chamada com `context=edit` para tentar obter campos `raw` quando o usuário tem permissão.
-- Se o site tiver plugins/campos customizados, o `raw_post_json` preserva o conteúdo retornado pela API.
-- O arquivo `.sql` foi padronizado para MySQL 8 (`utf8mb4`, tabela InnoDB e inserts em lote).
-
 ## Troubleshooting
 
-1. Erro de autenticação (`401`/`403`)
-- Verifique token/credenciais e permissões da conta.
-- Confirme se a API REST está habilitada no site.
+1. `401` or `403` from API
+- Check credentials/permissions.
+- Confirm REST API is enabled.
+- If `context=edit` is blocked, the exporter automatically retries with `context=view`.
 
-2. Campos `raw` vazios
-- Pode ser limitação de permissão no usuário autenticado.
-- Em alguns cenários, o WordPress retorna apenas `rendered`.
+2. Empty `*_raw` fields
+- Expected when the authenticated user lacks edit-level permissions.
+- In public context, WordPress usually returns only rendered fields.
 
-3. Timeout/rede
-- Aumente `--timeout`.
-- Verifique conectividade e bloqueios (WAF/firewall/proxy).
+3. Timeout/network issues
+- Increase `--timeout`.
+- Check firewall/WAF/proxy restrictions.
