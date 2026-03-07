@@ -34,9 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     auth.add_argument(
         "--username", help="WordPress username (for Application Password)"
     )
-    auth.add_argument(
-        "--application-password", help="WordPress Application Password"
-    )
+    auth.add_argument("--application-password", help="WordPress Application Password")
 
     parser.add_argument(
         "--timeout",
