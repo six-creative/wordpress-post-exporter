@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import requests
@@ -9,8 +10,13 @@ from .config import ExportConfig
 
 
 class WordPressClient:
-    def __init__(self, config: ExportConfig):
+    def __init__(
+        self,
+        config: ExportConfig,
+        progress_reporter: Callable[[str], None] | None = None,
+    ):
         self.config = config
+        self.progress_reporter = progress_reporter
         self.base_api_url = f"{config.normalized_base_url()}/wp-json/wp/v2"
         self.session = requests.Session()
         self.session.headers.update({"Accept": "application/json"})
@@ -30,6 +36,10 @@ class WordPressClient:
         response = exc.response
         return response is not None and response.status_code == 404
 
+    def _report(self, message: str) -> None:
+        if self.progress_reporter is not None:
+            self.progress_reporter(message)
+
     def _get_paginated(
         self, endpoint: str, params: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
@@ -48,11 +58,16 @@ class WordPressClient:
             response.raise_for_status()
 
             items = response.json()
+            total_pages = int(response.headers.get("X-WP-TotalPages", "1"))
             if not items:
+                self._report(f"[{endpoint}] sem registros.")
                 break
 
             all_items.extend(items)
-            total_pages = int(response.headers.get("X-WP-TotalPages", "1"))
+            self._report(
+                f"[{endpoint}] página {page}/{total_pages} | "
+                f"acumulado: {len(all_items)}"
+            )
             if page >= total_pages:
                 break
             page += 1
@@ -65,6 +80,7 @@ class WordPressClient:
             "context": "edit",
             "_embed": "author,wp:term",
         }
+        self._report("Buscando posts publicados (context=edit)...")
         try:
             posts = self._get_paginated(endpoint="posts", params=params)
             self.posts_context = "edit"
@@ -72,6 +88,9 @@ class WordPressClient:
         except HTTPError as exc:
             if not self._is_auth_error(exc):
                 raise
+            self._report(
+                "Sem permissão para context=edit. Tentando modo público (context=view)"
+            )
 
         fallback_params = {
             "status": "publish",
@@ -83,28 +102,40 @@ class WordPressClient:
         return posts
 
     def get_categories_map(self) -> dict[int, str]:
+        self._report("Buscando categorias...")
         try:
-            categories = self._get_paginated("categories", params={"context": self.posts_context})
+            categories = self._get_paginated(
+                "categories", params={"context": self.posts_context}
+            )
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
+                self._report(
+                    "Categorias indisponíveis neste contexto; seguindo sem mapa."
+                )
                 return {}
             raise
         return {item["id"]: item.get("name", "") for item in categories}
 
     def get_tags_map(self) -> dict[int, str]:
+        self._report("Buscando tags...")
         try:
             tags = self._get_paginated("tags", params={"context": self.posts_context})
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
+                self._report("Tags indisponíveis neste contexto; seguindo sem mapa.")
                 return {}
             raise
         return {item["id"]: item.get("name", "") for item in tags}
 
     def get_users_map(self) -> dict[int, str]:
+        self._report("Buscando autores...")
         try:
             users = self._get_paginated("users", params={"context": self.posts_context})
         except HTTPError as exc:
             if self._is_auth_error(exc) or self._is_not_found_error(exc):
+                self._report(
+                    "Endpoint de usuários indisponível; usando autor do _embedded."
+                )
                 return {}
             raise
         return {item["id"]: item.get("name", "") for item in users}

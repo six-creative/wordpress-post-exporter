@@ -45,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=30,
         help="Timeout em segundos para cada chamada HTTP.",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Desativa logs de progresso no terminal.",
+    )
     return parser
 
 
@@ -62,8 +67,12 @@ def main() -> int:
         timeout_seconds=args.timeout,
     )
 
+    def report_progress(message: str) -> None:
+        if not args.quiet:
+            print(f"[INFO] {message}", flush=True)
+
     try:
-        total = export_posts(config)
+        total = export_posts(config, progress_reporter=report_progress)
     except Exception as exc:  # noqa: BLE001
         print(f"Erro ao exportar posts: {exc}", file=sys.stderr)
         return 1

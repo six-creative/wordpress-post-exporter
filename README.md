@@ -90,6 +90,7 @@ python3 main.py \
 - `--username`: usuário WordPress
 - `--application-password`: senha de aplicação do WordPress
 - `--timeout`: timeout por chamada HTTP em segundos (padrão: `30`)
+- `--quiet`: desativa logs de progresso no terminal
 
 ## Exemplo de execução
 
@@ -97,6 +98,20 @@ Saída esperada ao final:
 
 ```text
 Exportação concluída. N posts salvos em: caminho/do/arquivo
+```
+
+Durante a execução, o programa mostra o andamento no terminal, por exemplo:
+
+```text
+[INFO] Iniciando exportação...
+[INFO] Buscando posts publicados (context=edit)...
+[INFO] Sem permissão para context=edit. Tentando modo público (context=view)...
+[INFO] [posts] página 1/12 | acumulado: 100
+[INFO] [posts] página 2/12 | acumulado: 200
+[INFO] ...
+[INFO] Normalizados: 1200/1200
+[INFO] Escrevendo arquivo CSV em posts.csv...
+Exportação concluída. 1200 posts salvos em: posts.csv
 ```
 
 ## Estrutura do projeto
