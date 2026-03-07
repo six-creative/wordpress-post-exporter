@@ -45,7 +45,7 @@ pip install -r requirements.txt
 A ferramenta suporta:
 
 - `csv`
-- `sql` (dump SQL de uma base SQLite contendo a tabela `posts`)
+- `sql` (dump compatível com MySQL 8 contendo `DROP TABLE`, `CREATE TABLE` e `INSERT` para `posts`)
 
 ## Autenticação suportada
 
@@ -134,6 +134,7 @@ Exportação concluída. 1200 posts salvos em: posts.csv
 - A exportação usa paginação (`per_page=100`) e percorre todas as páginas disponíveis.
 - A API é chamada com `context=edit` para tentar obter campos `raw` quando o usuário tem permissão.
 - Se o site tiver plugins/campos customizados, o `raw_post_json` preserva o conteúdo retornado pela API.
+- O arquivo `.sql` foi padronizado para MySQL 8 (`utf8mb4`, tabela InnoDB e inserts em lote).
 
 ## Troubleshooting
 
